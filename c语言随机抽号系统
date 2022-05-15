@@ -1,0 +1,490 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <math.h>
+
+
+struct Student {
+	char ID[100];
+	char Name[100];
+	int sc[10];
+}student[1000];
+
+struct Rank
+{
+	float score;
+	struct Student s;
+	char rank[10];
+	int i;
+};
+
+int index = 0;
+struct Rank RankStudent[1000] = { 0 };
+int num = 0;
+int num2 = 0;
+
+
+void readFile();
+void Awards();
+void save();
+void menu();
+void delete(struct Student* arr, int num);
+void tianjia();
+void qingdan();
+void xiugai();
+void kaishi();
+void paiming();
+int Student_searchID();
+int Student_searchName();
+int liebiao();
+void writeFile();
+void sort(struct Rank* arr);
+
+
+void save() 
+{
+	Awards();
+	writeFile();
+	system("pause");
+	system("cls");
+	menu();
+}
+void Awards()
+{
+	int i;
+	int RankOne ;
+	int RankTwo ;
+	int RankThree ;
+	sort(RankStudent);
+	if (num >= 10)
+	{
+		RankOne = num * 0.1;
+		RankTwo = num * 0.2;
+		RankThree = num * 0.3;
+		for (i = 0; i < index; i++)
+		{
+			if (i < RankOne)
+			{
+				strcpy(RankStudent[i].rank, "一等奖");
+			}
+			else if (i > RankOne && i < RankTwo)
+			{
+				strcpy(RankStudent[i].rank, "二等奖");
+			}
+			else if (i > RankTwo && i < RankThree)
+			{
+				strcpy(RankStudent[i].rank, "三等奖");
+			}
+			else
+			{
+				strcpy(RankStudent[i].rank, "参与奖");
+			}
+		}
+	}
+	else
+	{
+		for (i = 0; i < index; i++)
+		{
+			switch (i)
+			{
+			case 0:
+				strcpy(RankStudent[i].rank, "一等奖");
+				break;
+			case 1:
+				strcpy(RankStudent[i].rank, "二等奖");
+				break;
+			case 2:
+				strcpy(RankStudent[i].rank, "二等奖");
+				break;
+			case 3:
+				strcpy(RankStudent[i].rank, "三等奖");
+				break;
+			case 4:
+				strcpy(RankStudent[i].rank, "三等奖");
+				break;
+			case 5:
+				strcpy(RankStudent[i].rank, "三等奖");
+				break;
+			default:
+				strcpy(RankStudent[i].rank, "参与奖");
+				break;
+			}
+		}
+	}
+
+}
+void paiming()
+{
+	int i;
+	sort(RankStudent);
+	printf("姓名 学号 分数 排名\n");
+	for (i = 0; i < index; i++)
+	{
+		printf("%s  %s  %f  %d\n", RankStudent[i].s.Name, RankStudent[i].s.ID, RankStudent[i].score,i+1);
+	}
+	getchar();
+	menu();
+}
+
+void menu()
+{
+	printf("***************欢迎来到学生随机抽号演讲积分系统*****************\n");
+	printf("\n");
+	printf("#请输入序号进入要进行的功能#\n");
+	printf("#1.学生清单\n");
+	printf("#2.添加学生\n");
+	printf("#3.修改学生\n");
+	printf("#4.开始比赛\n");
+	printf("#5.比赛排名\n");
+	printf("#6.保存\n");
+	printf("#7.继续上一次\n");
+	printf("#8.新的一次\n");
+	printf("#0.退出系统\n");
+	int i;
+	scanf("%d", &i);
+	if (i == 0)
+		exit(1);
+	switch (i)
+	{
+	case 1:
+		system("cls");
+		qingdan();
+		break;
+	case 2:
+		system("cls");
+		tianjia();
+		break;
+	case 3:
+		system("cls");
+		xiugai();
+		break;
+	case 4:
+		system("cls");
+		kaishi();
+		break;
+	case 5:
+		paiming();
+		system("cls");
+		break;
+	case 6:
+		save();
+		system("cls");
+	case 7:
+		readFile();
+		break;
+	case 8:
+		num = 0;
+		index = 0;
+		memset(RankStudent, sizeof(struct Rank) * 1000, 0);
+		memset(student, sizeof(struct Student) * 1000, 0);
+		menu();
+		break;
+	default:
+		printf("输入有误\n");
+		system("pause");
+		system("cls");
+		menu();
+	}
+}
+void delete(struct Student* arr,int num)
+{
+	int i;
+	for (i = num; i < 1000-1; i++)
+	{
+		arr[i] = arr[i + 1];
+	}
+}
+void readFile()
+{
+	FILE* fp;
+	FILE* fp2;
+	fp = fopen("./已比赛.txt", "r");
+	if (fp == NULL)
+	{
+		printf("open error\n");
+		exit(1);
+	}
+
+	while (fscanf(fp, "%s %s %f",RankStudent[index].s.Name, RankStudent[index].s.ID, &RankStudent[index].score) != EOF)
+	{
+		index++;
+	}
+	fclose(fp);
+	fp2 = fopen("./未比赛.txt", "r");
+	if (fp2 == NULL)
+	{
+		printf("open error\n");
+		exit(1);
+	}
+	while (fscanf(fp2, "%s %s", student[num].Name, student[num].ID) != EOF)
+	{
+		num++;
+	}
+	fclose(fp2);
+	printf("读取成功");
+	system("pause");
+
+	system("cls");
+	menu();
+}
+void writeFile()
+{
+	int i = 0;
+	FILE* fp;
+	FILE* fp2;
+	FILE* fp3;
+	fp = fopen("./已比赛.txt", "w+");
+	if (fp == NULL)
+	{
+		printf("open error\n");
+		exit(1);
+	}
+	for (i = 0; i < index; i++)
+	{
+		fprintf(fp, "%s %s %f\n", RankStudent[i].s.Name, RankStudent[i].s.ID, RankStudent[i].score);
+	}
+	fclose(fp);
+
+
+	fp2 = fopen("./未比赛.txt", "w+");
+	if (fp2 == NULL)
+	{
+		printf("open error\n");
+		exit(1);
+	}
+	for (i = 0; i < num-index; i++)
+	{
+		fprintf(fp, "%s %s\n", student[i].Name, student[i].ID);
+	}
+	fclose(fp2);
+
+
+	fp3 = fopen("./获奖情况.txt", "w+");
+	if (fp2 == NULL)
+	{
+		printf("open error\n");
+		exit(1);
+	}
+	for (i = 0; i < index; i++)
+	{
+		fprintf(fp, "%s %s %f %s\n", RankStudent[i].s.Name, RankStudent[i].s.ID, RankStudent[i].score, RankStudent[i].rank);
+	}
+	fclose(fp3);
+	printf("保存成功\n");
+	system("pause");
+	system("cls");
+	menu();
+}
+void sort(struct Rank* arr)
+{
+	int i, j;
+	float temp;
+	for (int i = 0; i < index; i++)
+	{
+		for (j = i+1; j < index; j++)
+		{
+			if (arr[i].score <arr[j].score)
+			{
+				temp = arr[i].score;
+				arr[i].score = arr[j].score;
+				arr[j].score = temp;
+			}
+		}
+	}
+}
+int main()
+{
+	menu();
+}
+
+int Student_searchName(char name[])//通过姓名来检索学生
+{
+	int i;
+	for (i = 0; i < num; i++)
+	{
+		if (strcmp(student[i].Name, name) == 0)  //通过strcmp函数来对比学生姓名，找到返回在数组的位置 
+		{
+			return i;
+		}
+	}
+	return -1;    //未找到返回 -1 
+}
+
+int Student_searchID(char id[])//通过学号来检索学生信息
+{
+	int i;
+	for (i = 0; i < num; i++)
+	{
+		if (strcmp(student[i].ID, id) == 0)
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+
+int liebiao()
+{
+	int a, i;
+	printf("%10s%10s\n", "编号", "姓名");
+	printf("-------------------------------------------------------------\n");
+	for (a = 0; a < num; a++)
+	{
+		printf("%10s%10s\n", student[a].ID, student[a].Name);
+	}
+	printf("-------------------------------------------------------------\n");
+}
+
+
+void bubble_sort(int unsorted[], unsigned int len)
+{
+	int i = 0, j = 0;
+	for (i = 0; i < len; i++)
+	{
+		for (j = i+1; j < len ; j++)
+		{
+			if (unsorted[i] > unsorted[j])
+			{
+				int temp = unsorted[i];
+				unsorted[i] = unsorted[j];
+				unsorted[j] = temp;
+			}
+		}
+	}
+}
+
+void tianjia()//录入学生信息
+{
+	while (1)
+	{
+		printf("请输入编号:");
+		scanf("%s", &student[num].ID);
+		getchar();
+		//依次输入各项数据 
+		if (Student_searchID(student[num].ID) == -1)
+		{
+			printf("请输入姓名:");
+			scanf("%s", &student[num].Name);
+			getchar();
+			num++;  //移向下一个位置 
+		}
+		else
+		{
+			printf("编号重复，输入数据无效 !!!\n");
+		}
+
+		printf("是否继续?(y/n)");
+		if (getchar() == 'n')
+		{
+			system("cls");
+			menu();
+			break;
+		}
+	}
+}
+
+void qingdan()//打印已录入的学生信息
+{
+	int a, i;
+	printf("%10s%10s\n", "编号", "姓名");
+	printf("-------------------------------------------------------------\n");
+	for (a = 0; a < num; a++)
+	{
+		printf("%10s%10s\n", student[a].ID, student[a].Name);
+	}
+	printf("-------------------------------------------------------------\n");
+	printf("按0返回主菜单\n");
+	scanf("%d", &i);
+	if (i == 0)
+	{
+		system("pause");
+		menu();
+		system("cls");
+	}
+}
+
+void xiugai()//修改成绩
+{
+	while (1)
+	{
+		char id[20];
+		int i;
+		printf("请输入要修改的学生的编号(请在开始比赛前进行修改，开始后请勿修改):");
+		scanf("%s", &id);
+		i = Student_searchID(id);  //调用搜查id函数，根据其返回值确定位置 
+		if (i == -1)
+		{
+			printf("学生不存在!\n");
+		}
+		else
+		{
+			printf("你要修改的学生信息为:\n");
+			printf("%10s%10s", "编号", "姓名");
+			printf("-------------------------------------------------------------\n");
+			printf("%10s%10s\n", student[i].ID, student[i].Name);
+			printf("----- 请输入新值 -----\n");
+			printf("请输入编号:");
+			scanf("%s", &student[i].ID);
+			getchar();
+			printf("请输入姓名:");
+			scanf("%s", &student[i].Name);
+			getchar();
+		}
+		printf("是否继续?(y/n)");
+		if (getchar() == 'n')
+		{
+			system("pause");
+			system("cls");
+			break;
+		}
+	}
+	system("cls");
+	menu();
+}
+void kaishi()
+{
+	int i, j, r, n;
+	/*float max, min, sum = 0;*/
+	srand((unsigned int)time(NULL));
+	if (0 == num)
+	{
+		printf("所有人已经比赛完\n");
+		system("pause");
+		system("cls");
+		menu();
+	}
+	r = rand() % num;
+	int m = 0;
+	float score[5];
+	/*printf("%d", num);*/
+	liebiao();
+	printf("请评委们为编号%s打分（编号=编号1）\n", student[r].ID);
+	for (m = 0; m < 5; m++)
+	{
+		printf("请输入第%d位老师的评分: ", m + 1);
+		scanf("%f", &score[m]);
+	}
+	//			scanf("%d %d %d %d %d",&score[0], &score[1], &score[2], &score[3], &score[4]);
+	bubble_sort	(score, 5);
+	RankStudent[index].score = (score[1] + score[2] + score[3]) / 3.0;
+	RankStudent[index].s = student[r];
+	printf("编号%s获得%f分\n", RankStudent[index].s.ID, RankStudent[index].score);
+	index++;
+	num--;
+	delete(student, r );
+	printf("是否继续?(y/n)\n");
+	getchar();
+	if (getchar() == 'n')
+	{
+		system("pause");
+		system("cls");
+		menu();
+	}
+	else
+	{
+		system("pause");
+		system("cls");
+		kaishi();
+	}
+}
