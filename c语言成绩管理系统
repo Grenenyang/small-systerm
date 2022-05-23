@@ -1,0 +1,1008 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include<stdio.h>
+#include<string.h>
+#include <stdlib.h>
+#include<time.h>
+#define BUF_SIZE 200
+
+typedef struct
+{
+	char xh[10]; //学号
+	char xm[20]; //姓名，10个汉字以内
+	char xb[3];  //性别，只能保存一个汉字
+	int nl;       //年龄
+}Student;
+
+typedef struct
+{
+	char kh[10]; //课号，长度10字符以内
+	char km[25]; //课姓名，12个汉字以内
+	float  xf;    //课程学分，为一个浮点数
+}Course;
+
+typedef struct
+{
+	char xh[10]; //学号，长度10字符以下
+	char kh[10]; //课程号
+	float  cj;    //成绩，为一个浮点数
+}Select;
+
+typedef struct
+{
+	char xh[10]; //学号
+	char xm[20]; //姓名
+	float cj[30];//各门课程成绩
+	float zpj;    //加权平均分
+	float zxf;    //总修习学分
+}Score;
+
+typedef struct
+{
+	char zh[15];
+	char mm[15];
+}sigen;
+
+typedef struct {
+	int year;
+	int month;
+	int day;
+	int hour;
+	int minute;
+	int second;
+}Time_YMD_HMS;
+
+
+
+sigen user[1000];
+char* getNowTime();
+unsigned int userCount;
+void write_loging_file();
+void sort_cjlist(Score cjlist[], int cjcount);
+void init(Student slist[], int* scount, Course clist[], int* ccount, Select sclist[], int* sccount);
+void disp_cjlist(Score cjlist[], int cjcount, Course clist[], int ccount, Student slist[], int scount);
+int create_cjlist(Select sclist[], int sccount, Course clist[], int ccount, Score cjlist[]);
+int input_select(Select sclist[], int sccount, Course clist[], int ccount, Student slist[], int scount);
+void write_to_file1(Student slist[], int scount, Course clist[], int ccount, Select sclist[], int sccount);
+void write_to_file2(Score cjlist[], int cjcount, Course clist[], int ccount, Student slist[], int scount);
+void query_cjlist(Score cjcount[], int cjcoun, Course clist[], int ccount, Student slist[], int scount);
+int input_course(Course clist[], int ccount);
+void disp_course(Course clist[], int ccount);
+int delete_select(Select sclist[], int sccount);
+void query_course(Course clist[], int ccount);
+int delete_stud(Student slist[], int scount, Select sclist[], int* sccount);
+int delete_course(Course clist[], int ccount, Select sclist[], int* sccount);
+int delete_select(Select sclist[], int sccount);
+int input_stud(Student slist[], int scount);
+void sort_slist(Student slist[], int scount);
+void disp_stud(Student slist[], int scount);
+int delete_stud(Student slist[], int scount);
+void query_stud(Student slist[], int scount);
+void login();
+void initSysterm();
+void registering(sigen mmlist[]);
+int Signing(sigen mmlist[]);
+int menu_select();
+
+char* getNowTime()
+{
+	Time_YMD_HMS* curDate = (Time_YMD_HMS*)malloc(sizeof(Time_YMD_HMS));
+	char* timeBuf = (char*)malloc(BUF_SIZE);
+	memset(timeBuf,0, BUF_SIZE);
+	memset(curDate,0, sizeof(Time_YMD_HMS));
+	time_t now;
+	struct tm* timeNow;
+	time(&now);
+	timeNow = localtime(&now);
+	curDate->year = timeNow->tm_year + 1900;
+	curDate->month = timeNow->tm_mon + 1;
+	curDate->day = timeNow->tm_mday;
+	curDate->hour = timeNow->tm_hour;
+	curDate->minute = timeNow->tm_min;
+	curDate->second = timeNow->tm_sec;
+	// yyyy-MM-dd HH:mm:ss
+	sprintf(timeBuf, "%d%d%d%d%d%d", curDate->year, curDate->month, curDate->day,
+		curDate->hour, curDate->minute, curDate->second);
+	free(curDate);
+	return timeBuf;
+}
+void write_loging_file()
+{
+	FILE* fp;
+	fp = fopen("./用户.txt","w");
+	if (fp == NULL)
+	{
+		printf("open error\n");
+		exit(1);
+	}
+	for (int i = 0; i < userCount; i++)
+	{
+		fwrite(fp,"%s %s\n",user[i].zh, user[i].mm);
+	}
+	
+}
+void initSysterm()
+{
+	FILE* fp1;
+	fp1 = fopen("account number.txt", "w");
+	if (fp1 == NULL) {
+		printf("open error\n");
+		exit(1);
+	}
+	while (fscanf(fp1, "%s%s", user[userCount].zh, user[userCount].mm)!=EOF)
+	{
+		userCount++;
+	}
+	fclose(fp1);
+}
+int main()
+{
+	
+	int sum;
+	int z = 0;
+	int scount = 0,  ccount = 0,  sccount = 0,  cjcount = 0;
+	Student slist[100];
+	Course clist[100];
+	Select sclist[100];
+	Score cjlist[100];
+	
+	initSysterm();
+	login();
+	init(slist, &scount, clist, &ccount, sclist, &sccount);
+	
+	while (1)
+	{
+		
+		switch (menu_select())
+		{
+		case 1://输入学生，课程，选课信息 
+			printf(">>请选择要输入的信息(1.学生，2.课程，3.选课信息):");
+			scanf("%d", &z);
+			switch (z) 
+			{
+				case 1: scount = input_stud(slist, scount); break;
+				case 2:ccount = input_course(clist, ccount); break;
+				case 3:sccount = input_select(sclist, sccount, clist, ccount, slist, scount); break;
+			}
+			system("pause");
+			break;
+		case 2://显示所有数据
+			printf(">>请选择要显示的信息(1.学生，2.课程，3.选课信息):");
+			scanf("%d", &z);
+			cjcount = create_cjlist(sclist, sccount, clist, &ccount, cjlist);
+			switch (z) 
+			{
+					
+			case 1:	disp_stud(slist, scount); break;
+			case 2: disp_course(clist, ccount); break;
+			case 3:	disp_cjlist(cjlist, cjcount, clist, ccount, slist, scount); break;
+			}
+			system("pause");
+			break;
+		case 3://按条件删除记录
+			printf(">>请选择要删除的信息(1.学生，2.课程，3.选课信息):");
+			scanf("%d", &z);
+			switch (z) {
+			case 1:	scount = delete_stud(slist, scount, sclist, &sccount); break;
+			case 2: ccount = delete_course(clist, ccount, sclist, &sccount); break;
+			case 3:	sccount = delete_select(sclist, sccount); break;
+			}
+			system("pause");
+			break;
+		case 4://查询信息
+			printf(">>请选择要查询的信息(1.学生，2.课程，3.选课信息):");
+			scanf("%d", &z);
+			switch (z) {
+			case 1:	query_stud(slist, scount); break;
+			case 2: query_course(clist, ccount); break;
+			case 3:	query_cjlist(cjlist, cjcount, clist, ccount, slist, scount); break;
+			}
+			system("pause");
+			break;
+		case 5://保存记录
+			cjcount = create_cjlist(sclist, &sccount, clist, &ccount, cjlist);
+			write_to_file1(slist, scount, clist, ccount, sclist, sccount);
+			write_to_file2(cjlist, cjcount, clist, ccount, slist, scount);
+			write_loging_file();
+			printf("写入成功\n"); 
+			system("pause");
+			break;
+		case 6://退出
+			return 0;
+		default:
+			printf("输入无效信息\n"); 
+		}
+	}
+	return 0;
+} 
+void login()
+{
+	int num;
+	printf("欢迎登录该成绩系统(1.登录 2.注册)：\n");
+	scanf("%d", &num);
+	switch (num) 
+	{
+		case 1:
+			Signing(user); 
+			break;
+		case 2:
+			registering(user); 
+			break;
+		default:
+			printf("输入有误，从新输入\n");
+			break;
+	}
+}
+void init(Student slist[], int* scount, Course clist[], int* ccount, Select sclist[], int* sccount)//初始换函数
+{
+	FILE* fp1;
+	FILE* fp2;
+	FILE* fp3;
+	int ch;
+	fp1 = fopen("identipy information.txt", "w");
+	if (fp1 == NULL) {
+		printf("open error\n");
+		exit(1);
+	}
+	while (fscanf(fp1, "%s%s%s%d", slist[*scount].xh, slist[*scount].xm, slist[*scount].xb, &slist[*scount].nl)!=EOF)
+	{
+		(* scount)++;
+	}
+	fclose(fp1);
+	fp2 = fopen("count.txt", "w");
+	if (fp2 == NULL) {
+		printf("open error\n");
+		exit(1);
+	}
+	while (fscanf(fp2, "%s%s%f", clist[*ccount].kh, clist[* ccount].km, &clist[*ccount].xf)!=EOF)
+	{
+		(* ccount)++;
+	}
+	fclose(fp2);
+	fp3 = fopen("scount.txt", "w");
+	if (fp3 == NULL) {
+		printf("open error\n");
+		exit(1);
+	}
+	while (fscanf(fp3, "%s%s%f", sclist[*sccount].xh, sclist[ * sccount].kh, &sclist[*sccount].cj)!=EOF)
+	{
+		
+		(* sccount)++;
+	}
+	fclose(fp3);
+}
+
+int input_stud(Student slist[], int scount)//输入函数
+{
+	int i = 0, k = scount, g, h,d;
+	while (i == 0)
+	{
+		g = 0;
+		printf("输入要记录的若干学生信息(学号，姓名，性别，年龄)\n");
+		scanf("%s%s%s%d", slist[k].xh, slist[k].xm, slist[k].xb, &slist[k].nl);
+		while (g < scount)
+		{
+			if (strcmp(slist[k].xh, slist[g].xh) == 0 || strcmp(slist[k].xm, slist[g].xm) == 0)
+			{
+				printf("存在相同信息，是否要发生替换  是：0 否：1\n"); 
+				scanf("%d", &h);
+				if (h == 0)
+				{
+					slist[g] = slist[k];
+				}
+				else {
+					k--;
+					break;
+				}
+
+			}
+			g++;
+		}
+		printf("是否继续输入（是：0 否：1）\n");
+		scanf("%d", &i);
+		k++;
+	}
+	return k;
+}
+
+int input_course(Course clist[], int ccount)//输入函数
+{
+	int i = 0, k = ccount, g, h;
+	while (i == 0)
+	{
+		g = 0;
+		printf("输入要记录的若干课程信息（课号，课名，学分）\n");
+		scanf("%s%s%f", clist[k].kh, clist[k].km, &clist[k].xf);
+		while (g < ccount)
+		{
+			if (strcmp(clist[k].kh, clist[g].kh) == 0 || strcmp(clist[k].km, clist[g].km) == 0)
+			{
+				
+				printf("存在相同信息，是否要发生替换  是：0 否：1\n"); 
+				scanf("%d", &h);
+				if (h == 0)
+				{
+					clist[g] = clist[k];
+				}
+				else {
+					k--;
+					break;
+				}
+			}
+			g++;
+		}
+		printf("是否继续，是：0 否：1\n");
+		scanf("%d", &i);
+		k++;
+	}
+	return k;
+}
+
+int input_select(Select sclist[], int sccount, Course clist[], int ccount, Student slist[], int scount)//输入函数
+{
+	int i = 0, k = sccount, g, h, m, n, f;
+	int q;
+	while (i == 0)
+	{
+		g = 0; m = 0; n = 0; h = 0, q = 0, f = 0;
+		printf("输入要记录的若干学生成绩信息（学号，课号，成绩（无成绩为-1））\n");
+		scanf("%s%s%f", sclist[k].xh, sclist[k].kh, &sclist[k].cj);
+		while (g < ccount)
+		{
+			if (strcmp(sclist[k].kh, clist[g].kh) == 0)
+			{
+				m = 1;
+				break;
+			}
+			g++;
+		}
+		if (g == ccount)
+		{
+			
+			printf("非合法输入课程号，请检查后重新进行输入\n"); 
+		}
+		while (h < scount)
+		{
+			if (strcmp(sclist[k].xh, slist[h].xh) == 0)
+			{
+				n = 1;
+				break;
+			}
+			h++;
+		}
+		if (h == scount)
+		{
+			
+			printf("非合法输入学号，请检查后重新进行输入\n"); 
+		}
+		if (!(sclist[k].cj >= 0 && sclist[k].cj <= 120))
+		{
+			
+			printf("非合法输入成绩，请检查后重新进行输入\n"); 
+		}
+		else
+		{
+			q = 1;
+		}
+		while (f < k)
+		{
+			if (strcmp(sclist[k].kh, sclist[f].kh) == 0 && strcmp(sclist[k].xh, sclist[f].xh) == 0)
+			{
+				
+				printf("存在相同信息，是否要发生替换  是：0 否：1\n");
+				scanf("%d", &h);
+				if (h == 0)
+				{
+					sclist[f] = sclist[k];
+				}
+				else {
+					k--;
+					break;
+				}
+			}
+			f++;
+		}
+		if (m == 1 && n == 1 && q == 1)
+		{
+			k++;
+		}
+		printf("是否继续或重新输入，是：0 否：1\n");
+		scanf("%d", &i);
+	}
+	return k;
+}
+void sort_slist(Student slist[], int scount)
+{
+	int t;
+	for (int i = 0; i < scount - 1; i++)
+	{
+		for (int j = 0; j < scount - i - 1; j++)
+		{
+			t = strcmp(slist[j].xh, slist[j + 1].xh);
+			if (t > 0) {
+				slist[99] = slist[j]; slist[j] = slist[j + 1]; slist[j + 1] = slist[99];
+			}
+		}
+	}
+}
+int create_cjlist(Select sclist[], int sccount, Course clist[], int ccount, Score cjlist[])//创建成绩表函数
+{
+	int i = 0, number = 0, j, g;
+	while (i < sccount)
+	{
+		j = 0;
+		while (j < number)
+		{
+			if (!strcmp(cjlist[j].xh, sclist[i].xh)) {
+				break;
+			}
+			j++;
+		}
+		if (j == number) {
+			strcpy(cjlist[j].xh, sclist[i].xh);
+			int e = 0;
+			while (e < 30) {
+				cjlist[j].cj[e++] = -1;
+			}
+			cjlist[j].zpj = 0; cjlist[j].zxf = 0;
+			g = 0;
+			while (strcmp(sclist[i].kh, clist[g].kh)) {
+				g++;
+			}
+			cjlist[j].cj[g] = sclist[i].cj;
+			cjlist[j].zxf += clist[g].xf;
+			if (cjlist[j].zxf == 0) {
+				cjlist[j].zpj = 0;
+			}
+			else {
+				cjlist[j].zpj = (cjlist[j].zpj * (cjlist[j].zxf - clist[g].xf) + sclist[i].cj * clist[g].xf) / cjlist[j].zxf;
+			}
+			number++;
+		}
+		else {
+			g = 0;
+			while (strcmp(sclist[i].kh, clist[g].kh)) {
+				g++;
+			}
+			cjlist[j].cj[g] = sclist[i].cj;
+			cjlist[j].zxf += clist[g].xf;
+			if (cjlist[j].zxf == 0) {
+				cjlist[j].zpj = 0;
+			}
+			else {
+				cjlist[j].zpj = (cjlist[j].zpj * (cjlist[j].zxf - clist[g].xf) + sclist[i].cj * clist[g].xf) / cjlist[j].zxf;
+			}
+		}
+		i++;
+	}
+	return number;
+}
+void disp_cjlist(Score cjlist[], int cjcount, Course clist[], int ccount, Student slist[], int scount)//显示成绩信息函数
+{
+	int h = 0, k = 0, i = 0, j = 0, f;
+	while (i < cjcount)
+	{
+		h = 0;
+		while (strcmp(cjlist[i].xh, slist[h].xh))
+		{
+			h++;
+		}
+		strcpy(cjlist[i].xm, slist[h].xm);
+		i++;
+	}
+	sort_cjlist(cjlist, cjcount);
+	printf("序号\t学号\t姓名 ");
+	while (k < ccount) {
+		printf("%12s", clist[k].km);
+		k++;
+	}
+	printf("\t\t均分\t总学分\t\n");
+	k = 0;
+	while (k < cjcount) {
+		printf("%2d %12s% 10s ", k + 1, cjlist[k].xh, cjlist[k].xm);
+		j = 0;
+		while (j < ccount)
+		{
+			if (cjlist[k].cj[j] == -1)
+			{
+				printf("            ");
+			}
+			else {
+				printf("%12f", cjlist[k].cj[j]);
+			}
+			j++;
+		}
+		printf("%12f%12f\n", cjlist[k].zpj, cjlist[k].zxf);
+		if (k % 9 == 0 && k != 0)
+		{
+			printf("是否需要继续输出  是：0 否：1\n");
+			scanf("%d", &f);
+			if (f == 0) {
+				;
+			}
+			else {
+				break;
+			}
+		}
+		k++;
+	}
+}
+void disp_stud(Student slist[], int scount)//显示学生信息函数
+{
+	int k;
+	int f;
+	printf("序号\t学号\t姓名\ t性别\t年龄\t\n");
+	sort_slist(slist, scount);
+	for ( k = 0; k < scount; k++)
+	{
+		printf("%-5d%10s%10s%10s%10d\n", k, slist[k].xh, slist[k].xm, slist[k].xb, slist[k].nl);
+		if (k % 9 == 0 && k != 0)
+		{
+			printf("是否需要继续输出  是：0 否：1\n");
+			scanf("%d", &f);
+			if (f == 0) {
+				;
+			}
+			else {
+				break;
+			}
+		}
+	}
+}
+void disp_course(Course clist[], int ccount)//显示课程信息函数
+{
+	int f;
+	int k;
+	void sort_clist(Course clist[], int ccount);
+	sort_clist(clist, ccount);
+	printf("课程号\t课名\t\t学分\t\n");
+	for (k = 0; k < ccount; k++)
+	{
+		printf("%s\t%-16s%f\t\n", clist[k].kh, clist[k].km, clist[k].xf);
+		if (k % 9 == 0 && k != 0)
+		{
+			printf("是否需要继续输出  是：0 否：1\n");
+			scanf("%d", &f);
+			if (f == 0);
+			else {
+				break;
+			}
+		}
+	}
+}
+int delete_stud(Student slist[], int scount, Select sclist[], int* sccount)//删除学生信息函数
+{
+	char xh[100]; int f;
+	int i;
+	int delete_select1(Select sclist[], int* sccount, char xh[10]);
+	int m = 101, d; int* p = &scount;
+	while (1)
+	{
+		printf("输入你要删除的学生信息(学号或姓名)\n");
+		scanf("%s", xh);
+		for (i = 0; i < scount; i++)
+		{
+			m = 101;
+			if (strcmp(slist[i].xh, xh) == 0 || strcmp(slist[i].xm, xh) == 0)
+			{
+				m = i;
+				break;
+			}
+		}
+		if (m == 101)
+		{
+			printf("没有找到该学生信息\n"); 
+		}
+		else {
+			for (; m < scount - 1; m++)
+			{
+				slist[m] = slist[m + 1];
+			}
+			scount -= 1;
+			delete_select1(sclist, sccount, xh);
+			printf("修改完成\n");
+		}
+		printf("是否需要继续输出  是：0 否：1\n");
+		scanf("%d", &f);
+		if (f == 0) {
+			;
+		}
+		else {
+			break;
+		}
+	}
+	return scount;
+}
+int delete_course(Course clist[], int ccount, Select sclist[], int* sccount)//删除课程信息函数
+{
+	char xh[100];
+	int f = 0;
+	int i;
+	int delete_select1(Select sclist[], int* sccount, char xh[10]);
+	int m = 101, d; int* p = &ccount;
+	while (1)
+	{
+		printf("输入你要删除的课程信息(课程名或课程号)\n");
+		scanf("%s", xh);
+		for (i = 0; i < ccount; i++)
+		{
+			m = 101;
+			if (strcmp(clist[i].kh, xh) == 0 || strcmp(clist[i].km, xh) == 0)
+			{
+				m = i;
+				break;
+			}
+		}
+		if (m == 101)
+		{
+			printf("没有找到该课程信息\n");
+		}
+		else {
+			for (; m < ccount - 1; m++)
+			{
+				clist[m] = clist[m + 1];
+			}
+			ccount -= 1;
+			delete_select1(sclist, sccount, xh);
+			printf("修改完成\n"); 
+		}
+		printf("是否需要继续输出  是：0 否：1\n");
+		scanf("%d", &f);
+		if (f == 0);
+		else {
+			break;
+		}
+	}
+	return ccount;
+}
+
+int delete_select(Select sclist[], int sccount)//删除选课信息函数
+{
+	int f = 0, m, k = 1, g = 0;
+	int i;
+	char xh[10];
+	while (1)
+	{
+		g = 0; k = 1;
+		printf("输入你要删除的选课信息(学号或课号)\n");
+		scanf("%s", xh);
+		while (k != 0)
+		{
+			k = 0, m = 101;
+			for (i = 0; i < sccount; i++)
+			{
+				if (strcmp(sclist[i].xh, xh) == 0 || strcmp(sclist[i].kh, xh) == 0)
+				{
+					m = i;
+					k = 1;
+					g++;
+					break;
+				}
+			}
+			if (m == 101 && g == 0)
+			{
+				printf("没有找到成绩信息\n");
+			}
+			else {
+				for (; m < sccount - 1; m++)
+				{
+					sclist[m] = sclist[m + 1];
+				}
+				sccount -= 1;
+			}
+		}
+		if (m == 101 && g == 0);
+		else {
+			printf("修改完成\n");
+		}
+		printf("是否需要继续操作删除信息  是：0 否：1\n");
+		scanf("%d", &f);
+		if (f == 0);
+		else {
+			break;
+		}
+	}
+	return sccount;
+}
+
+int delete_select1(Select sclist[], int* sccount, char xh[10])//删除成绩信息函数
+{
+	int f = 0, m, k = 1, g = 0; int i;
+	while (1)
+	{
+		g = 0; k = 1;
+		for (i = 0; i < *sccount; i++)
+		{
+			if (strcmp(sclist[i].xh, xh) == 0 || strcmp(sclist[i].kh, xh) == 0)
+			{
+				m = i;
+				k = 0;
+				g++;
+				break;
+			}
+		}
+		if (k == 1 && i == *sccount)
+		{
+			break;
+		}
+		else {
+			for (; m < *sccount - 1; m++)
+			{
+				sclist[m] = sclist[m + 1];
+			}
+			*sccount -= 1;
+		}
+	}
+	return 0;
+}
+int menu_select(void)
+{
+	char c;
+	do {
+		system("cls");/*  清屏  */
+		 printf("\t\t\t学生信息管理系统\n");
+		printf("            ---------------------------------------------------------\n");
+		printf("            |                功能列表：                             |\n");
+		printf("            |                1.输入学生，课程，选课信息             |\n");
+		printf("            |                2.显示所有数据                         |\n");
+		printf("            |                3.按条件删除记录                       |\n");
+		printf("            |                4.按条件查询记录                       |\n");
+		printf("            |                5.保存记录                             |\n");
+		printf("            |                6.退出                                 |\n");
+		printf("            ---------------------------------------------------------\n");
+		printf("Input 1-6: ");
+		c = getchar();
+	} while (c < '0' || c>'10');
+	return(c - '0');
+}
+
+void sort_cjlist(Score cjlist[], int cjcount)//排序函数
+{
+	int t, max, i, j;
+	Score m;
+	for (i = 0; i < cjcount - 1; i++)
+	{
+		max = cjlist[0].zpj; t = 0;
+		for (j = 0; j < cjcount - i; j++)
+		{
+			if (max > cjlist[j].zpj) {
+				max = cjlist[j].zpj; t = j;
+			}
+		}
+		m = cjlist[cjcount - i - 1]; cjlist[cjcount - i - 1] = cjlist[t]; cjlist[t] = m;
+	}
+}
+
+void sort_clist(Course clist[], int ccount)//排序函数
+{
+	int t, i, j;
+	Course m;
+	for (i = 0; i < ccount - 1; i++)
+	{
+		for (j = 0; j < ccount - i - 1; j++)
+		{
+			if (strcmp(clist[j].kh, clist[j + 1].kh) > 0) {
+				m = clist[j]; clist[j] = clist[j + 1]; clist[j + 1] = m;
+			}
+		}
+	}
+}
+
+void query_stud(Student slist[], int scount)//查询学生信息函数
+{
+	char str[100]; int i = 0;
+	printf("请输入你要查询的学生信息（学号或姓名）\n");
+	scanf("%s", str);
+	while (i < scount)
+	{
+		if (strcmp(str, slist[i].xh) == 0 || strcmp(str, slist[i].xm) == 0)
+			break;
+		else {
+			i++;
+		}
+	}
+	if (i == scount) {
+		 printf("没有找到该学生的信息\n"); 
+	}
+	else {
+		printf("学号\t\t姓名\t性别\t年龄\t\n");
+		printf("%s\t%s\t%s\t%d\n", slist[i].xh, slist[i].xm, slist[i].xb, slist[i].nl);
+	}
+}
+
+void query_course(Course clist[], int ccount)//查询课程信息函数
+{
+	char str[100]; int i = 0;
+	printf("请输入你要查询的课程信息（课号或课程名）\n");
+	scanf("%s", str);
+	while (i < ccount)
+	{
+		if (strcmp(str, clist[i].kh) == 0 || strcmp(str, clist[i].km) == 0)
+			break;
+		else {
+			i++;
+		}
+	}
+	if (i == ccount) {
+		 printf("没有找到该课程的信息\n"); 
+	}
+	else {
+		printf("%s\t%s\t%f\n", clist[i].kh, clist[i].km, clist[i].xf);
+	}
+}
+
+void query_cjlist(Score cjcount[], int cjcoun, Course clist[], int ccount, Student slist[], int scount)//查询成绩信息函数
+{
+	char str[100]; int i = 0, k = 0, j = 0, h = 0;
+	printf("请输入你要查询的学生成绩信息（学号或姓名）\n");
+	scanf("%s", str);
+	while (i < cjcoun)
+	{
+		if (strcmp(str, cjcount[i].xh) == 0 || strcmp(str, cjcount[i].xm) == 0)
+			break;
+		else {
+			i++;
+		}
+	}
+	if (i == cjcoun) {
+		 printf("没有找到该学生成绩信息\n"); 
+	}
+	else {
+		while (strcmp(cjcount[i].xh, slist[h].xh))
+		{
+			h++;
+		}
+		strcpy(cjcount[i].xm, slist[h].xm);
+		printf("学号         姓名 ");
+		while (k < ccount) {
+			printf("%15s", clist[k].km);
+			k++;
+		}
+		printf("   \t均分\t总学分  ");
+		printf("\n");
+		printf("%-12s%-10s", cjcount[i].xh, cjcount[i].xm);
+		j = 0;
+		while (j < ccount)
+		{
+			if (cjcount[i].cj[j] == -1)
+			{
+				printf("\t\t");
+			}
+			else {
+				printf("%f   \t", cjcount[i].cj[j]);
+			}
+			j++;
+		}
+		printf("%f  %f\t\n", cjcount[i].zpj, cjcount[i].zxf);
+	}
+}
+void write_to_file1(Student slist[], int scount, Course clist[], int ccount, Select sclist[], int sccount)//写文件
+{
+	FILE* fp1; FILE* fp2; FILE* fp3;
+	int i = 0;
+	//getNowTime();
+	fp1 = fopen("student202205211147.txt", "w");
+	if (fp1 == NULL) {
+		printf("open error\n");
+		exit(1);
+	}
+	while (i < scount)
+	{
+		fprintf(fp1, "%s %s %s %d\n", slist[i].xh, slist[i].xm, slist[i].xb, slist[i].nl);
+		i++;
+	}
+	fclose(fp1);
+	i = 0;
+	fp2 = fopen("course202205211147.txt", "w");
+	if (fp2 == NULL) {
+		printf("open error\n");
+		exit(1);
+	}
+	while (i < ccount)
+	{
+		fprintf(fp2, "%s %s %f\n", clist[i].kh, clist[i].km, clist[i].xf);
+		i++;
+	}
+	fclose(fp2);
+	i = 0;
+	fp3 = fopen("select202205211147.txt", "w");
+	if (fp3 == NULL) {
+		printf("open error\n");
+		exit(1);
+	}
+	while (i < sccount)
+	{
+		fprintf(fp3, "%s %s\n", sclist[i].xh, sclist[i].kh);
+		i++;
+	}
+	fclose(fp3);
+}
+void write_to_file2(Score cjlist[], int cjcount, Course clist[], int ccount, Student slist[], int scount)//写文件
+{
+	FILE* fp1;
+	int h = 0, k = 0, i = 0, j = 0, f;
+	fp1 = fopen("cj202205211147.txt", "w");
+	if (fp1 == NULL) {
+		printf("open error \n");
+		exit(1);
+	}
+	while (i < cjcount)
+	{
+		h = 0;
+		while (strcmp(cjlist[i].xh, slist[h].xh))
+		{
+			h++;
+		}
+		strcpy(cjlist[i].xm, slist[h].xm);
+		i++;
+	}
+	sort_cjlist(cjlist, cjcount);
+	fprintf(fp1, "序号    学号     姓名 ");
+	while (k < ccount) {
+		fprintf(fp1, "%15s", clist[k].km);
+		k++;
+	}
+	fprintf(fp1, "\t均分\t总学分\t");
+	fprintf(fp1, "\n");
+	k = 0;
+	while (k < cjcount) {
+		fprintf(fp1, "%2d %12s% 10s ", k + 1, cjlist[k].xh, cjlist[k].xm);
+		j = 0;
+		while (j < ccount)
+		{
+			if (cjlist[k].cj[j] == -1)
+			{
+				fprintf(fp1, "\t\t");
+			}
+			else {
+				fprintf(fp1, "%f   \t", cjlist[k].cj[j]);
+			}
+			j++;
+		}
+		fprintf(fp1, "%f\t%f\t\n", cjlist[k].zpj, cjlist[k].zxf);
+		k++;
+	}
+}
+
+int Signing(sigen mmlist[])//login
+{
+	int t = 2;
+
+	int i = 0, k = 0, j = 0, h;
+	char a[15], b[15];
+	printf("请输入您的账号\n");
+	scanf("%s", a);
+	printf("请输入您的密码\n");
+	scanf("%s", b);
+	for(i=0;i<userCount;i++)
+	{
+		if ((strcmp(a, mmlist[i].zh) == 0)&& (strcmp(a, mmlist[i].mm) == 0))
+		{
+			printf("loging succesful\n");
+			break;
+		}
+	}
+	if (i == userCount)
+	{
+		printf("输入的信息（密码）错误\n");
+		Signing(user);
+	}
+}
+void registering(sigen mmlist[])//注册登录信息函数
+{
+	printf("请输入你要注册的账号及密码\n");
+	int i;
+	scanf("%s%s", mmlist[userCount].zh, mmlist[userCount].mm);
+	for (i = 0; i < userCount;i++) 
+	{
+		if (strcmp(mmlist[userCount].zh, mmlist[i].zh) == 0) 
+		{
+			 printf("该账号信息已存在\n");
+			 system("pause");
+			 registering(user);
+		}	
+	}
+	userCount++;
+	printf("注册成功\n");
+	login();
+}
+
